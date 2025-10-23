@@ -20,7 +20,8 @@
             --color-cyan: #1abc9c;
             --color-magenta: #9b59b6;
             --color-white: #ffffff;
-            --color-black: #34495e; /* Actually a dark blue-gray */
+            --color-black: #34495e;
+            --color-neutral: #bdc3c7; /* Color for the colorless thread */
         }
 
         body {
@@ -34,8 +35,8 @@
             align-items: center;
             min-height: 100vh;
             box-sizing: border-box;
-            -webkit-user-select: none; /* Safari */
-            -ms-user-select: none; /* IE 10+ */
+            -webkit-user-select: none;
+            -ms-user-select: none;
             user-select: none;
         }
 
@@ -81,8 +82,14 @@
             color: white;
             box-shadow: 0 4px 16px rgba(108, 92, 231, 0.3);
         }
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
 
-        .btn:hover {
+        .btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(108, 92, 231, 0.4);
         }
@@ -93,7 +100,7 @@
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
         }
         
-        .btn-secondary:hover {
+        .btn-secondary:hover:not(:disabled) {
              background-color: #e0e0e0;
              box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
         }
@@ -150,7 +157,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 30px;
+            gap: 20px;
         }
         
         .game-main-area {
@@ -182,11 +189,9 @@
         .grid-cell {
             aspect-ratio: 1 / 1;
             background-color: transparent;
-            /* For debugging */
-            /* box-shadow: inset 0 0 1px #ddd; */
         }
         
-        .threads-overlay {
+        .threads-overlay, .highlight-overlay {
             position: absolute;
             top: 0;
             left: 0;
@@ -195,9 +200,16 @@
             pointer-events: none;
         }
         
+        .highlight-row {
+            position: absolute;
+            width: 100%;
+            background-color: rgba(108, 92, 231, 0.2);
+            pointer-events: none;
+            transition: top 0.3s ease;
+        }
+        
         .thread {
             position: absolute;
-            background-color: var(--color-red);
         }
         
         .thread.vertical { width: 4px; height: 100%; transform: translateX(-50%); }
@@ -206,8 +218,7 @@
         .thread.r { background-color: var(--color-red); }
         .thread.g { background-color: var(--color-green); }
         .thread.b { background-color: var(--color-blue); }
-
-        /* Drop-zone styles removed */
+        .thread.n { background-color: var(--color-neutral); }
 
         #thread-selector {
             display: flex;
@@ -222,6 +233,12 @@
             display:flex;
             gap: 10px;
             align-items: center;
+            transition: opacity 0.3s;
+        }
+        
+        .thread-group.disabled {
+            opacity: 0.4;
+            pointer-events: none;
         }
         
         .thread-label {
@@ -260,18 +277,19 @@
         .draggable-thread.r .draggable-thread-inner { background-color: var(--color-red); }
         .draggable-thread.g .draggable-thread-inner { background-color: var(--color-green); }
         .draggable-thread.b .draggable-thread-inner { background-color: var(--color-blue); }
-
+        .draggable-thread.n .draggable-thread-inner { background-color: var(--color-neutral); }
 
         .game-controls {
             display: flex;
-            gap: 15px;
-            margin-top: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
             width: 100%;
             justify-content: center;
         }
 
-        /* --- Modal --- */
-        .modal-overlay {
+        /* --- Modal & Tutorial --- */
+        .modal-overlay, .tutorial-overlay {
             position: fixed;
             top: 0;
             left: 0;
@@ -283,7 +301,7 @@
             align-items: center;
             z-index: 1000;
         }
-        .modal-content {
+        .modal-content, .tutorial-box {
             background-color: white;
             padding: 30px;
             border-radius: 12px;
@@ -292,49 +310,11 @@
             width: 90%;
             max-width: 400px;
         }
-        .modal-content h3 {
-            margin-top: 0;
-            font-size: 1.5rem;
-        }
-        .modal-content p {
-            margin-bottom: 25px;
-        }
-        .modal-actions {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-        }
-        
-        /* --- Tutorial --- */
-        .tutorial-overlay {
-             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.6);
-            z-index: 2000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .tutorial-box {
-            background-color: white;
-            padding: 25px;
-            border-radius: 12px;
-            max-width: 500px;
-            text-align: center;
-            position: relative;
-        }
-        .tutorial-box h3 {
-            margin-top: 0;
-        }
-        .tutorial-box p {
-            line-height: 1.6;
-        }
-        #close-tutorial {
-            margin-top: 15px;
-        }
+        .modal-content h3, .tutorial-box h3 { margin-top: 0; font-size: 1.5rem; }
+        .modal-content p, .tutorial-box p { margin-bottom: 25px; line-height: 1.6; }
+        .modal-actions { display: flex; justify-content: center; gap: 15px; }
+        #close-tutorial { margin-top: 15px; }
+        .tutorial-overlay { z-index: 2000; }
 
         /* Responsive */
         @media (max-width: 768px) {
@@ -347,38 +327,28 @@
                 align-items: center;
             }
             #thread-selector {
-                order: -1; /* Place selector on top */
+                order: -1;
                 flex-direction: row;
                 flex-wrap: wrap;
                 justify-content: center;
             }
-            .thread-group {
-                flex-direction: column;
-            }
+            .thread-group { flex-direction: column; }
         }
     </style>
 </head>
 <body>
 
     <div class="game-container">
-
-        <!-- 設定アイコン -->
         <div id="settings-icon" class="settings-icon hidden">⚙️</div>
-
-        <!-- タイトル画面 -->
         <div id="title-screen">
             <h1>彩りの機織り</h1>
             <p>Color Weave</p>
             <button id="start-game-btn" class="btn">ゲームスタート</button>
         </div>
-
-        <!-- ステージ選択画面 -->
         <div id="stage-select-screen" class="hidden">
             <h2>ステージ選択</h2>
             <div id="stage-grid" class="stage-grid"></div>
         </div>
-
-        <!-- ゲーム画面 -->
         <div id="game-screen" class="hidden">
             <h2 id="stage-title">Stage 1</h2>
             <div class="game-main-area">
@@ -393,31 +363,32 @@
                 <div class="game-panel">
                     <h3>糸</h3>
                     <div id="thread-selector">
-                        <div class="thread-group">
+                        <div id="vertical-thread-group" class="thread-group">
                             <span class="thread-label">縦</span>
                             <div class="draggable-thread vertical r" draggable="true" data-color="r" data-orientation="vertical"><div class="draggable-thread-inner"></div></div>
                             <div class="draggable-thread vertical g" draggable="true" data-color="g" data-orientation="vertical"><div class="draggable-thread-inner"></div></div>
                             <div class="draggable-thread vertical b" draggable="true" data-color="b" data-orientation="vertical"><div class="draggable-thread-inner"></div></div>
+                            <div class="draggable-thread vertical n" draggable="true" data-color="n" data-orientation="vertical"><div class="draggable-thread-inner"></div></div>
                         </div>
-                         <div class="thread-group">
+                         <div id="horizontal-thread-group" class="thread-group">
                             <span class="thread-label">横</span>
                             <div class="draggable-thread horizontal r" draggable="true" data-color="r" data-orientation="horizontal"><div class="draggable-thread-inner"></div></div>
                             <div class="draggable-thread horizontal g" draggable="true" data-color="g" data-orientation="horizontal"><div class="draggable-thread-inner"></div></div>
                             <div class="draggable-thread horizontal b" draggable="true" data-color="b" data-orientation="horizontal"><div class="draggable-thread-inner"></div></div>
+                            <div class="draggable-thread horizontal n" draggable="true" data-color="n" data-orientation="horizontal"><div class="draggable-thread-inner"></div></div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="game-controls">
+                <button id="confirm-verticals-btn" class="btn">縦糸を確定</button>
                 <button id="hint-btn" class="btn btn-secondary">ヒント</button>
                 <button id="reset-btn" class="btn btn-secondary">リセット</button>
                 <button id="back-to-select-btn" class="btn btn-secondary">ステージ選択へ</button>
             </div>
         </div>
-
     </div>
     
-    <!-- モーダル（確認ダイアログなど） -->
     <div id="modal-overlay" class="modal-overlay hidden">
         <div class="modal-content">
             <h3 id="modal-title"></h3>
@@ -429,7 +400,6 @@
         </div>
     </div>
     
-    <!-- チュートリアル表示用 -->
     <div id="tutorial-overlay" class="tutorial-overlay hidden">
         <div class="tutorial-box">
              <h3 id="tutorial-title"></h3>
@@ -438,95 +408,76 @@
         </div>
     </div>
 
-
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- DOM Elements ---
-            const titleScreen = document.getElementById('title-screen');
-            const stageSelectScreen = document.getElementById('stage-select-screen');
-            const gameScreen = document.getElementById('game-screen');
-            const screens = [titleScreen, stageSelectScreen, gameScreen];
-
-            const startGameBtn = document.getElementById('start-game-btn');
-            const stageGrid = document.getElementById('stage-grid');
-            const backToSelectBtn = document.getElementById('back-to-select-btn');
-            const resetBtn = document.getElementById('reset-btn');
-            const stageTitle = document.getElementById('stage-title');
-            
-            const goalGrid = document.getElementById('goal-grid');
-            const playerGrid = document.getElementById('player-grid');
-            const threadSelector = document.getElementById('thread-selector');
-            
-            const settingsIcon = document.getElementById('settings-icon');
-
-            const modalOverlay = document.getElementById('modal-overlay');
-            const modalTitle = document.getElementById('modal-title');
-            const modalMessage = document.getElementById('modal-message');
-            const modalConfirm = document.getElementById('modal-confirm');
-            const modalCancel = document.getElementById('modal-cancel');
-            
-            const tutorialOverlay = document.getElementById('tutorial-overlay');
-            const tutorialTitle = document.getElementById('tutorial-title');
-            const tutorialMessage = document.getElementById('tutorial-message');
-            const closeTutorialBtn = document.getElementById('close-tutorial');
-            const hintBtn = document.getElementById('hint-btn');
-
+            const titleScreen = document.getElementById('title-screen'),
+                  stageSelectScreen = document.getElementById('stage-select-screen'),
+                  gameScreen = document.getElementById('game-screen'),
+                  screens = [titleScreen, stageSelectScreen, gameScreen],
+                  startGameBtn = document.getElementById('start-game-btn'),
+                  stageGrid = document.getElementById('stage-grid'),
+                  backToSelectBtn = document.getElementById('back-to-select-btn'),
+                  resetBtn = document.getElementById('reset-btn'),
+                  stageTitle = document.getElementById('stage-title'),
+                  goalGrid = document.getElementById('goal-grid'),
+                  playerGrid = document.getElementById('player-grid'),
+                  threadSelector = document.getElementById('thread-selector'),
+                  verticalThreadGroup = document.getElementById('vertical-thread-group'),
+                  horizontalThreadGroup = document.getElementById('horizontal-thread-group'),
+                  settingsIcon = document.getElementById('settings-icon'),
+                  modalOverlay = document.getElementById('modal-overlay'),
+                  modalTitle = document.getElementById('modal-title'),
+                  modalMessage = document.getElementById('modal-message'),
+                  modalConfirm = document.getElementById('modal-confirm'),
+                  modalCancel = document.getElementById('modal-cancel'),
+                  tutorialOverlay = document.getElementById('tutorial-overlay'),
+                  tutorialTitle = document.getElementById('tutorial-title'),
+                  tutorialMessage = document.getElementById('tutorial-message'),
+                  closeTutorialBtn = document.getElementById('close-tutorial'),
+                  hintBtn = document.getElementById('hint-btn'),
+                  confirmVerticalsBtn = document.getElementById('confirm-verticals-btn');
 
             // --- Game Data ---
             let STAGES = [
-                // All stage goals will be generated from their solutions on initialization.
-                // --- Beginner (3x3) ---
-                { size: 3, solution: {v:['r','g','b'],h:[null,null,null]} },
-                { size: 3, solution: {v:['r','g',null],h:['b',null,null]} },
-                { size: 3, solution: {v:[null,'b',null],h:['r','g','r']} },
-                { size: 3, solution: {v:['b','g','g'],h:[null,null,'b']} },
-                { size: 3, solution: {v:['r',null,'r'],h:[null,'b',null]} },
-                // --- Intermediate (4x4) ---
-                { size: 4, solution: {v:['r','g','b',null],h:['r','g','b',null]} },
-                { size: 4, solution: {v:['b','g',null,'b'],h:[null,'g','g',null]} },
-                { size: 4, solution: {v:['r','r',null,null],h:['g','g','b','b']} },
-                { size: 4, solution: {v:['r','g','g','r'],h:[null,'b','b',null]} },
-                { size: 4, solution: {v:['g',null,'g',null],h:['b','r','b','r']} },
-                // --- Advanced (4x4 & 5x5) ---
-                { size: 4, solution: {v:['r','b','r','b'],h:[null,'r','r',null]} },
-                { size: 4, solution: {v:['r','r','g','g'],h:['b','b',null,null]} },
-                { size: 5, solution: {v:['r','g','b','r','g'],h:[null,null,null,null,null]} },
-                { size: 5, solution: {v:['b','g','g','g','b'],h:[null,'g',null,'g',null]} },
-                { size: 5, solution: {v:['r','r','g','g','g'],h:[null,null,'r','b','b']} },
-                // --- Expert (5x5) ---
-                { size: 5, solution: {v:[null,'b','b','b',null],h:['g',null,null,null,'g']} },
-                { size: 5, solution: {v:['r','g','b','g','r'],h:[null,'g','r','g',null]} },
-                { size: 5, solution: {v:['r','b',null,'b','r'], h:['g',null,'b',null,'g']} },
-                { size: 5, solution: {v:['r','g','b','g','r'], h:['b','r',null,'r','b']} },
-                { size: 5, solution: {v:['r','g','b','g','r'],h:['r','g','b','g','r']} }
+                // All stages now include the neutral 'n' thread and are designed for the new gameplay flow.
+                // Beginner (3x3)
+                { size: 3, solution: {v:['r','n','b'],h:['g',null,null]} },
+                { size: 3, solution: {v:['r','g','b'],h:['n','n',null]} },
+                { size: 3, solution: {v:['n','b','n'],h:['r','g','r']} },
+                { size: 3, solution: {v:['b','g','n'],h:[null,'n','b']} },
+                { size: 3, solution: {v:['r','n','r'],h:['n','b','n']} },
+                // Intermediate (4x4)
+                { size: 4, solution: {v:['r','g','b','n'],h:['n','g','b',null]} },
+                { size: 4, solution: {v:['b','n','g','b'],h:[null,'g','n','g']} },
+                { size: 4, solution: {v:['r','r','n',null],h:['g','g','b','b']} },
+                { size: 4, solution: {v:['r','g','g','r'],h:['n','b','b','n']} },
+                { size: 4, solution: {v:['g','n','g','n'],h:['b','r','b','r']} },
+                // Advanced (4x4 & 5x5)
+                { size: 4, solution: {v:['r','b','r','b'],h:['n','r','r','n']} },
+                { size: 4, solution: {v:['r','n','g','g'],h:['b','b','n','r']} },
+                { size: 5, solution: {v:['r','g','n','b','r'],h:['n','n',null,null,null]} },
+                { size: 5, solution: {v:['b','g','n','g','b'],h:[null,'g','n','g',null]} },
+                { size: 5, solution: {v:['r','n','g','g','n'],h:['n','r','n','b','b']} },
+                // Expert (5x5)
+                { size: 5, solution: {v:['n','b','b','b','n'],h:['g','n','n','n','g']} },
+                { size: 5, solution: {v:['r','g','b','g','r'],h:['n','g','r','g','n']} },
+                { size: 5, solution: {v:['r','n',null,'n','r'], h:['g','b','n','b','g']} },
+                { size: 5, solution: {v:['r','g','b','g','r'], h:['b','n','r','n','b']} },
+                { size: 5, solution: {v:['r','g','n','g','r'],h:['r','n','b','n','r']} }
             ];
             
-            const TUTORIALS = {
-                1: { title: "チュートリアル 1/3", message: "好きな色の「糸」をドラッグして、右側の「織り機」の線上へドロップしてみましょう。縦の糸は縦線の上、横の糸は横線の上に置けます。" },
-                2: { title: "チュートリアル 2/3", message: "糸が交差すると、色が混ざります (赤+緑=黄, 緑+青=シアン, 青+赤=マゼンタ)。お手本と同じ色になるように糸を配置しましょう。" },
-                3: { title: "チュートリアル 3/3", message: "配置した糸は、ドラッグして織り機の外にドロップすると取り除けます。間違えたらリセットボタンも使ってみましょう。" },
-            };
-
-            const COLOR_MAP = {
-                r: { name: 'red', hex: 'var(--color-red)' },
-                g: { name: 'green', hex: 'var(--color-green)' },
-                b: { name: 'blue', hex: 'var(--color-blue)' },
-                y: { name: 'yellow', hex: 'var(--color-yellow)' },
-                c: { name: 'cyan', hex: 'var(--color-cyan)' },
-                m: { name: 'magenta', hex: 'var(--color-magenta)' },
-                w: { name: 'white', hex: 'var(--color-white)' },
-                black: { name: 'black', hex: 'var(--color-black)' }
-            };
+            const COLOR_MAP = { r: 'var(--color-red)', g: 'var(--color-green)', b: 'var(--color-blue)', y: 'var(--color-yellow)', c: 'var(--color-cyan)', m: 'var(--color-magenta)', n: 'var(--color-neutral)', black: 'var(--color-black)' };
 
             // --- Game State ---
-            let currentStage = 0;
-            let playerThreads = { vertical: [], horizontal: [] };
-            let draggedThread = null;
-            let clearedStages = [];
+            let currentStage = 0, playerThreads = { vertical: [], horizontal: [] }, draggedThread = null, clearedStages = [], gamePhase = 'vertical', currentWeavingRow = 0;
 
             // --- Functions ---
-            const mixColorsForGeneration = (vColor, hColor) => {
+            const mixColors = (vColor, hColor) => {
                 if (!vColor && !hColor) return 'black';
+                if (vColor === 'n' && hColor === 'n') return 'black';
+                if (vColor === 'n') return hColor || 'black';
+                if (hColor === 'n') return vColor || 'black';
                 if (!vColor) return hColor;
                 if (!hColor) return vColor;
                 if (vColor === hColor) return vColor;
@@ -541,67 +492,32 @@
                 const goal = [];
                 for (let row = 0; row < size; row++) {
                     for (let col = 0; col < size; col++) {
-                        const vThread = solution.v[col];
-                        const hThread = solution.h[row];
-                        goal.push(mixColorsForGeneration(vThread, hThread));
+                        goal.push(mixColors(solution.v[col], solution.h[row]));
                     }
                 }
                 return goal;
             };
 
-            // --- Screen Management ---
             const showScreen = (screenToShow) => {
-                screens.forEach(screen => screen.classList.add('hidden'));
+                screens.forEach(s => s.classList.add('hidden'));
                 screenToShow.classList.remove('hidden');
-                
-                if(screenToShow === stageSelectScreen || screenToShow === gameScreen) {
-                    settingsIcon.classList.remove('hidden');
-                } else {
-                    settingsIcon.classList.add('hidden');
-                }
+                settingsIcon.classList.toggle('hidden', screenToShow === titleScreen);
             };
             
-            const goToTitleScreen = () => showScreen(titleScreen);
-            const goToStageSelectScreen = () => {
-                buildStageSelect();
-                showScreen(stageSelectScreen);
-            };
-            const goToGameScreen = (stageId) => {
-                loadStage(stageId);
-                showScreen(gameScreen);
-            };
+            const goToStageSelectScreen = () => { buildStageSelect(); showScreen(stageSelectScreen); };
+            const goToGameScreen = (stageId) => { loadStage(stageId); showScreen(gameScreen); };
 
-            // --- Local Storage ---
-            const saveProgress = () => {
-                localStorage.setItem('colorWeaveProgress', JSON.stringify(Array.from(clearedStages)));
-            };
+            const saveProgress = () => localStorage.setItem('colorWeaveProgress', JSON.stringify(Array.from(clearedStages)));
+            const loadProgress = () => clearedStages = new Set(JSON.parse(localStorage.getItem('colorWeaveProgress') || '[]'));
+            const resetProgress = () => { clearedStages.clear(); saveProgress(); buildStageSelect(); };
 
-            const loadProgress = () => {
-                const progress = localStorage.getItem('colorWeaveProgress');
-                if (progress) {
-                    clearedStages = new Set(JSON.parse(progress));
-                } else {
-                    clearedStages = new Set();
-                }
-            };
-            
-            const resetProgress = () => {
-                clearedStages.clear();
-                saveProgress();
-                buildStageSelect();
-            };
-
-            // --- Stage Setup ---
             const buildStageSelect = () => {
                 stageGrid.innerHTML = '';
-                STAGES.forEach((stage, index) => {
+                STAGES.forEach((_, index) => {
                     const btn = document.createElement('button');
-                    btn.classList.add('stage-btn', 'btn');
-                    if (clearedStages.has(index)) {
-                        btn.classList.add('cleared');
-                    }
+                    btn.className = `stage-btn btn ${clearedStages.has(index) ? 'cleared' : ''}`;
                     btn.textContent = index + 1;
-                    btn.addEventListener('click', () => goToGameScreen(index));
+                    btn.onclick = () => goToGameScreen(index);
                     stageGrid.appendChild(btn);
                 });
             };
@@ -610,344 +526,182 @@
                 currentStage = stageId;
                 const stage = STAGES[stageId];
                 stageTitle.textContent = `Stage ${stageId + 1}`;
-                
-                playerThreads = {
-                    vertical: Array(stage.size).fill(null),
-                    horizontal: Array(stage.size).fill(null)
-                };
-
+                playerThreads = { vertical: Array(stage.size).fill(null), horizontal: Array(stage.size).fill(null) };
                 setupGrid(goalGrid, stage.size, stage.goal, false);
                 setupGrid(playerGrid, stage.size, null, true);
+                setGamePhase('vertical');
                 updatePlayerGrid();
-                
-                if (TUTORIALS[stageId + 1]) {
-                    showTutorial(stageId + 1);
-                }
             };
             
-            const showTutorial = (stageNum) => {
-                const tutorial = TUTORIALS[stageNum];
-                if (!tutorial) return;
+            const setGamePhase = (phase) => {
+                gamePhase = phase;
+                const isVerticalPhase = phase === 'vertical';
                 
-                tutorialTitle.textContent = tutorial.title;
-                tutorialMessage.textContent = tutorial.message;
-                tutorialOverlay.classList.remove('hidden');
+                verticalThreadGroup.classList.toggle('disabled', !isVerticalPhase);
+                horizontalThreadGroup.classList.toggle('disabled', isVerticalPhase);
+                confirmVerticalsBtn.classList.toggle('hidden', !isVerticalPhase);
+                
+                if (!isVerticalPhase) {
+                    const size = STAGES[currentStage].size;
+                    currentWeavingRow = size - 1; // Start from the bottom row
+                }
+                updateHighlightOverlay();
             };
 
-            const setupGrid = (gridElement, size, cellColors, isPlayerGrid) => {
-                gridElement.innerHTML = '';
-                gridElement.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
-                gridElement.style.width = `${Math.min(size * 60, 250)}px`;
-                 gridElement.style.height = `${Math.min(size * 60, 250)}px`;
+            const setupGrid = (gridEl, size, cellColors, isPlayer) => {
+                gridEl.innerHTML = '';
+                gridEl.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+                const gridSize = `${Math.min(size * 60, 250)}px`;
+                gridEl.style.width = gridSize;
+                gridEl.style.height = gridSize;
                 
                 for (let i = 0; i < size * size; i++) {
                     const cell = document.createElement('div');
-                    cell.classList.add('grid-cell');
-                    if (cellColors) {
-                        const colorKey = cellColors[i];
-                        cell.style.backgroundColor = COLOR_MAP[colorKey]?.hex || 'transparent';
-                    }
-                    gridElement.appendChild(cell);
+                    cell.className = 'grid-cell';
+                    if (cellColors) cell.style.backgroundColor = COLOR_MAP[cellColors[i]] || 'transparent';
+                    gridEl.appendChild(cell);
                 }
                 
-                if(isPlayerGrid) {
-                    const threadsOverlay = document.createElement('div');
-                    threadsOverlay.className = 'threads-overlay';
-                    gridElement.appendChild(threadsOverlay);
-                    
-                    // Drop zone creation loop has been removed.
+                if(isPlayer) {
+                    gridEl.insertAdjacentHTML('beforeend', '<div class="threads-overlay"></div><div class="highlight-overlay"></div>');
                 }
             };
             
-            // --- Game Logic ---
             const updatePlayerGrid = () => {
                 const size = STAGES[currentStage].size;
                 const cells = playerGrid.querySelectorAll('.grid-cell');
-                
-                // Update cell colors
-                for (let row = 0; row < size; row++) {
-                    for (let col = 0; col < size; col++) {
-                        const vThread = playerThreads.vertical[col];
-                        const hThread = playerThreads.horizontal[row];
-                        
-                        const color = mixColors(vThread, hThread);
-                        cells[row * size + col].style.backgroundColor = COLOR_MAP[color]?.hex || 'transparent';
-                    }
-                }
-                
-                // Update thread visuals
                 const overlay = playerGrid.querySelector('.threads-overlay');
                 overlay.innerHTML = '';
                 
-                playerThreads.vertical.forEach((color, index) => {
-                    if (color) {
-                        const threadEl = document.createElement('div');
-                        threadEl.className = `thread vertical ${color}`;
-                        threadEl.style.left = `${((index + 0.5) / size) * 100}%`;
-                        overlay.appendChild(threadEl);
-                    }
-                });
-                playerThreads.horizontal.forEach((color, index) => {
-                     if (color) {
-                        const threadEl = document.createElement('div');
-                        threadEl.className = `thread horizontal ${color}`;
-                        threadEl.style.top = `${((index + 0.5) / size) * 100}%`;
-                        overlay.appendChild(threadEl);
-                    }
-                });
-                
-                checkWinCondition();
-            };
-
-            const mixColors = (vColor, hColor) => {
-                if (!vColor && !hColor) return 'black';
-                if (!vColor) return hColor;
-                if (!hColor) return vColor;
-
-                // Fix for same-color mixing
-                if (vColor === hColor) return vColor;
-
-                const colors = new Set([vColor, hColor]);
-                // The 'w' (white) condition is removed as it's not possible with 2 threads.
-                if (colors.has('r') && colors.has('g')) return 'y';
-                if (colors.has('g') && colors.has('b')) return 'c';
-                if (colors.has('b') && colors.has('r')) return 'm';
-                
-                return 'black'; // Fallback, should not be reached with primary colors.
-            };
-            
-            const checkWinCondition = () => {
-                const stage = STAGES[currentStage];
-                const size = stage.size;
-                
                 for (let row = 0; row < size; row++) {
                     for (let col = 0; col < size; col++) {
                         const vThread = playerThreads.vertical[col];
                         const hThread = playerThreads.horizontal[row];
-                        const playerColor = mixColors(vThread, hThread);
-                        const goalColor = stage.goal[row * size + col];
-                        
-                        if(playerColor !== goalColor) {
-                            return; // Not a win yet
-                        }
+                        cells[row * size + col].style.backgroundColor = COLOR_MAP[mixColors(vThread, hThread)];
                     }
                 }
                 
-                // If we reach here, it's a win!
-                clearedStages.add(currentStage);
-                saveProgress();
+                playerThreads.vertical.forEach((color, i) => { if (color) overlay.innerHTML += `<div class="thread vertical ${color}" style="left: ${((i + 0.5) / size) * 100}%"></div>`; });
+                playerThreads.horizontal.forEach((color, i) => { if (color) overlay.innerHTML += `<div class="thread horizontal ${color}" style="top: ${((i + 0.5) / size) * 100}%"></div>`; });
                 
-                setTimeout(() => {
-                     showModal(
-                        'クリア！',
-                        `ステージ ${currentStage + 1} をクリアしました！`,
-                        'OK',
-                        () => goToStageSelectScreen()
-                    );
-                    modalCancel.classList.add('hidden');
-                }, 300);
+                if(gamePhase === 'horizontal' && currentWeavingRow < 0) checkWinCondition();
             };
 
-            // --- Drag and Drop ---
-            threadSelector.addEventListener('dragstart', (e) => {
-                if (e.target.classList.contains('draggable-thread')) {
-                    draggedThread = {
-                        color: e.target.dataset.color,
-                        orientation: e.target.dataset.orientation
-                    };
-                    e.dataTransfer.effectAllowed = 'move';
+            const updateHighlightOverlay = () => {
+                const overlay = playerGrid.querySelector('.highlight-overlay');
+                if (gamePhase === 'horizontal' && currentWeavingRow >= 0) {
+                    const size = STAGES[currentStage].size;
+                    const rowHeight = 100 / size;
+                    overlay.innerHTML = `<div class="highlight-row" style="height:${rowHeight}%; top:${currentWeavingRow * rowHeight}%"></div>`;
+                } else {
+                    overlay.innerHTML = '';
                 }
-            });
-            
-            playerGrid.addEventListener('dragover', (e) => {
+            };
+
+            const checkWinCondition = () => {
+                const stage = STAGES[currentStage];
+                if (stage.goal.every((goalColor, i) => {
+                    const row = Math.floor(i / stage.size), col = i % stage.size;
+                    return goalColor === mixColors(playerThreads.vertical[col], playerThreads.horizontal[row]);
+                })) {
+                    clearedStages.add(currentStage);
+                    saveProgress();
+                    setTimeout(() => showModal('クリア！', `ステージ ${currentStage + 1} をクリアしました！`, 'OK', goToStageSelectScreen), 300);
+                }
+            };
+
+            const handleDrop = (e) => {
                 e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-            });
-            
-            playerGrid.addEventListener('drop', (e) => {
-                e.preventDefault();
-                // Return if not dragging a new thread to place
-                if (!draggedThread || draggedThread.remove) {
-                    draggedThread = null;
-                    return;
-                };
+                if (!draggedThread || draggedThread.remove) { draggedThread = null; return; }
 
                 const rect = playerGrid.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                
-                // Ensure the drop is within the grid bounds
-                if (x < 0 || x > rect.width || y < 0 || y > rect.height) {
-                    draggedThread = null;
-                    return;
-                }
+                const x = e.clientX - rect.left, y = e.clientY - rect.top;
+                if (x < 0 || x > rect.width || y < 0 || y > rect.height) { draggedThread = null; return; }
 
                 const size = STAGES[currentStage].size;
-                
-                if (draggedThread.orientation === 'vertical') {
-                    const col = Math.floor(x / (rect.width / size));
-                    if(col >= 0 && col < size) {
-                       playerThreads.vertical[col] = draggedThread.color;
-                    }
-                } else if (draggedThread.orientation === 'horizontal') {
-                    const row = Math.floor(y / (rect.height / size));
-                    if(row >= 0 && row < size) {
-                        playerThreads.horizontal[row] = draggedThread.color;
-                    }
+                const col = Math.floor(x / (rect.width / size));
+                const row = Math.floor(y / (rect.height / size));
+
+                if (gamePhase === 'vertical' && draggedThread.orientation === 'vertical') {
+                    playerThreads.vertical[col] = draggedThread.color;
+                } else if (gamePhase === 'horizontal' && draggedThread.orientation === 'horizontal' && row === currentWeavingRow) {
+                    playerThreads.horizontal[row] = draggedThread.color;
+                    currentWeavingRow--;
+                    updateHighlightOverlay();
                 }
                 
                 draggedThread = null;
                 updatePlayerGrid();
-            });
+            };
 
-            // Logic to remove threads
-            playerGrid.addEventListener('dragstart', (e) => {
-                // This is a bit of a hack. We detect a drag starting over the player grid
-                // to identify which thread to remove.
+            const handleDragStartToRemove = (e) => {
+                if (gamePhase !== 'vertical') return;
                 const rect = playerGrid.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+                const x = e.clientX - rect.left, y = e.clientY - rect.top;
                 const size = STAGES[currentStage].size;
-                
                 const col = Math.floor(x / (rect.width / size));
-                const row = Math.floor(y / (rect.height / size));
-
-                const colMid = (col + 0.5) * (rect.width / size);
-                const rowMid = (row + 0.5) * (rect.height / size);
-                
-                const distToCol = Math.abs(x - colMid);
-                const distToRow = Math.abs(y - rowMid);
-                
-                let threadToRemove = null;
-                if(distToCol < distToRow && playerThreads.vertical[col]) {
-                     threadToRemove = { orientation: 'vertical', index: col };
-                } else if (playerThreads.horizontal[row]){
-                     threadToRemove = { orientation: 'horizontal', index: row };
-                }
-
-                if(threadToRemove){
-                    draggedThread = { remove: threadToRemove };
-                     // Hide the original thread while dragging
+                if (playerThreads.vertical[col]) {
+                    draggedThread = { remove: true };
                     setTimeout(() => {
-                        playerThreads[threadToRemove.orientation][threadToRemove.index] = null;
+                        playerThreads.vertical[col] = null;
                         updatePlayerGrid();
                     }, 0);
                 }
-            });
+            };
 
-            document.body.addEventListener('drop', (e) => {
-                 // If a thread is dropped outside the player grid, it's removed.
-                if(draggedThread?.remove) {
-                    // Already removed when drag started
-                }
-                draggedThread = null;
-            });
-            
-            document.body.addEventListener('dragend', (e) => {
-                // If a removal drag was cancelled, restore the thread
-                if (draggedThread?.remove) {
-                    const {orientation, index} = draggedThread.remove;
-                    // This is complex, for now, we just accept removal on drag start.
-                }
-                draggedThread = null;
-            });
-            
-            // --- Modal ---
-            const showModal = (title, message, confirmText, onConfirm, onCancel = null) => {
+            const showModal = (title, msg, confirmTxt, onConfirm, onCancel) => {
                 modalTitle.textContent = title;
-                modalMessage.textContent = message;
-                modalConfirm.textContent = confirmText;
-                
-                modalConfirm.onclick = () => {
-                    modalOverlay.classList.add('hidden');
-                    onConfirm();
-                };
-                
-                if (onCancel) {
-                    modalCancel.classList.remove('hidden');
-                    modalCancel.onclick = () => {
-                        modalOverlay.classList.add('hidden');
-                        onCancel();
-                    };
-                } else {
-                    modalCancel.classList.add('hidden');
-                }
-                
+                modalMessage.textContent = msg;
+                modalConfirm.textContent = confirmTxt;
+                modalConfirm.onclick = () => { modalOverlay.classList.add('hidden'); onConfirm(); };
+                modalCancel.classList.toggle('hidden', !onCancel);
+                if (onCancel) modalCancel.onclick = () => { modalOverlay.classList.add('hidden'); onCancel(); };
                 modalOverlay.classList.remove('hidden');
             };
-            
-            modalOverlay.addEventListener('click', (e) => {
-                if (e.target === modalOverlay) {
-                    modalOverlay.classList.add('hidden');
-                }
-            });
 
             const showHint = () => {
-                const stage = STAGES[currentStage];
-                const solution = stage.solution;
-                const incorrectThreads = [];
-
-                // Find incorrect/missing vertical threads
-                solution.v.forEach((correctColor, index) => {
-                    if (playerThreads.vertical[index] !== correctColor) {
-                        incorrectThreads.push({ orientation: 'vertical', index, color: correctColor });
+                const { solution } = STAGES[currentStage];
+                if (gamePhase === 'vertical') {
+                    const incorrectV = solution.v.map((c, i) => (c !== playerThreads.vertical[i] ? i : -1)).filter(i => i !== -1);
+                    if (incorrectV.length > 0) {
+                        const idx = incorrectV[Math.floor(Math.random() * incorrectV.length)];
+                        playerThreads.vertical[idx] = solution.v[idx];
                     }
-                });
-
-                // Find incorrect/missing horizontal threads
-                solution.h.forEach((correctColor, index) => {
-                    if (playerThreads.horizontal[index] !== correctColor) {
-                        incorrectThreads.push({ orientation: 'horizontal', index, color: correctColor });
-                    }
-                });
-
-                if (incorrectThreads.length > 0) {
-                    // Pick a random incorrect thread to fix
-                    const hint = incorrectThreads[Math.floor(Math.random() * incorrectThreads.length)];
-                    
-                    playerThreads[hint.orientation][hint.index] = hint.color;
-                    updatePlayerGrid();
-                } else {
-                     showModal(
-                        'ヒント',
-                        'すべての糸が正しく配置されています！',
-                        'OK',
-                        () => {}
-                    );
-                    modalCancel.classList.add('hidden');
+                } else if (currentWeavingRow >= 0) {
+                    playerThreads.horizontal[currentWeavingRow] = solution.h[currentWeavingRow];
+                    currentWeavingRow--;
+                    updateHighlightOverlay();
                 }
+                updatePlayerGrid();
             };
 
-
             // --- Event Listeners ---
-            startGameBtn.addEventListener('click', goToStageSelectScreen);
-            backToSelectBtn.addEventListener('click', goToStageSelectScreen);
-            resetBtn.addEventListener('click', () => loadStage(currentStage));
-            hintBtn.addEventListener('click', showHint);
+            startGameBtn.onclick = goToStageSelectScreen;
+            backToSelectBtn.onclick = goToStageSelectScreen;
+            resetBtn.onclick = () => loadStage(currentStage);
+            hintBtn.onclick = showHint;
+            confirmVerticalsBtn.onclick = () => setGamePhase('horizontal');
             
-            settingsIcon.addEventListener('click', () => {
-                showModal(
-                    '進捗のリセット',
-                    '本当に全てのステージのクリア状況をリセットしますか？この操作は元に戻せません。',
-                    'リセットする',
-                    () => resetProgress(),
-                    () => {}
-                );
-            });
-            
-            closeTutorialBtn.addEventListener('click', () => {
-                tutorialOverlay.classList.add('hidden');
-            });
+            threadSelector.ondragstart = (e) => {
+                if (e.target.classList.contains('draggable-thread')) {
+                    draggedThread = { color: e.target.dataset.color, orientation: e.target.dataset.orientation };
+                    e.dataTransfer.effectAllowed = 'move';
+                }
+            };
+            playerGrid.ondragover = (e) => e.preventDefault();
+            playerGrid.ondrop = handleDrop;
+            playerGrid.ondragstart = handleDragStartToRemove;
+            document.body.ondragend = () => draggedThread = null;
+
+            settingsIcon.onclick = () => showModal('進捗のリセット', '本当に全てのステージのクリア状況をリセットしますか？', 'リセットする', resetProgress, () => {});
+            modalOverlay.onclick = (e) => { if (e.target === modalOverlay) modalOverlay.classList.add('hidden'); };
+            closeTutorialBtn.onclick = () => tutorialOverlay.classList.add('hidden');
 
             // --- Initialization ---
             const init = () => {
-                // Generate all goals from solutions to ensure consistency
-                STAGES.forEach(stage => {
-                    stage.goal = generateGoalFromSolution(stage.solution, stage.size);
-                });
-
+                STAGES.forEach(stage => stage.goal = generateGoalFromSolution(stage.solution, stage.size));
                 loadProgress();
-                goToTitleScreen();
+                showScreen(titleScreen);
             };
 
             init();
